@@ -74,7 +74,7 @@ public class BillingPlugin: CAPPlugin {
 
         if let foundTransaction = foundTransaction {
             SKPaymentQueue.default().finishTransaction(foundTransaction)
-            call.success()
+            call.resolve()
         } else {
             call.reject("Transaction not found")
         }
@@ -95,7 +95,7 @@ public class BillingPlugin: CAPPlugin {
                                 let receiptData = try Data(contentsOf: appStoreReceiptURL, options: .alwaysMapped)
 
                                 let receiptString = receiptData.base64EncodedString(options: [])
-                                call?.success([
+                                call?.resolve([
                                     "platform": "ios",
                                     "productId": self.product,
                                     "purchaseTime": Int64(NSDate().timeIntervalSince1970*1000),
@@ -103,11 +103,11 @@ public class BillingPlugin: CAPPlugin {
                                     "purchaseToken": receiptString,
                                 ])
                             }
-                            catch { call?.error("no receipt")}
+                            catch { call?.reject("no receipt")}
                         }
                     case .purchasing: break
-                    case .failed: call?.error("failed")
-                    case .deferred: call?.error("deferred")
+                    case .failed: call?.reject("failed")
+                    case .deferred: call?.reject("deferred")
                     @unknown default: print("Unexpected transaction state \(transaction.transactionState)")
                 }
             }
@@ -146,7 +146,7 @@ public class BillingPlugin: CAPPlugin {
                 if(!contains){
                     productList.products.append(product)
                 }
-                call?.success([
+                call?.resolve([
                    "price": product.price,
                    "price_currency_code": product.priceLocale.currencyCode!,
                    "title": product.localizedTitle,
