@@ -1,0 +1,9 @@
+{
+  "appId": "com.carstenklaffke.billingtest",
+  "appName": "Billing Test",
+  "webDir": "dist",
+  "billingTestDefaults": {
+    "productId": "fullversion",
+    "productType": "INAPP"
+  }
+}

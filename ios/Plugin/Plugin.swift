@@ -3,11 +3,18 @@ import Capacitor
 import StoreKit
 
 /**
- * Please read the Capacitor iOS Plugin Development Guide
- * here: https://capacitor.ionicframework.com/docs/plugins/ios
+ * Capacitor iOS billing (StoreKit 1). For SPM (Capacitor 8+), the class must conform to CAPBridgedPlugin.
  */
 @objc(BillingPlugin)
-public class BillingPlugin: CAPPlugin {
+public class BillingPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "BillingPlugin"
+    public let jsName = "BillingPlugin"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "querySkuDetails", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "launchBillingFlow", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "finishTransaction", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "sendAck", returnType: CAPPluginReturnPromise)
+    ]
 
     var observer: Observer!
     var delegate: Delegate!
@@ -22,10 +29,10 @@ public class BillingPlugin: CAPPlugin {
 
     var productList: ProductList!
 
-    @objc func querySkuDetails(_ call: CAPPluginCall) {
+    @objc public func querySkuDetails(_ call: CAPPluginCall) {
         let productName = call.getString("product") ?? "fullversion"
 
-        if(productList == nil){
+        if productList == nil {
             productList = ProductList()
         }
         delegate = Delegate(call: call, self.productList)
@@ -33,11 +40,11 @@ public class BillingPlugin: CAPPlugin {
         validate(productIdentifiers: [productName], call: call)
     }
 
-    @objc func launchBillingFlow(_ call: CAPPluginCall) {
+    @objc public func launchBillingFlow(_ call: CAPPluginCall) {
         let productName = call.getString("product") ?? "fullversion"
 
         for product in self.productList.products {
-            if(product.productIdentifier == productName){
+            if product.productIdentifier == productName {
                 let payment = SKMutablePayment(product: product)
                 observer = Observer(call: call, product: productName)
                 SKPaymentQueue.default().add(observer)
@@ -57,13 +64,13 @@ public class BillingPlugin: CAPPlugin {
          request.start()
     }
 
-    @objc func finishTransaction(_ call: CAPPluginCall) {
+    @objc public func finishTransaction(_ call: CAPPluginCall) {
         guard let transactionId = call.getString("transactionId") else {
             call.reject("No transactionId provided")
             return
         }
 
-        var foundTransaction: SKPaymentTransaction? = nil
+        var foundTransaction: SKPaymentTransaction?
 
         for transaction in SKPaymentQueue.default().transactions {
             if transaction.transactionIdentifier == transactionId {
@@ -80,14 +87,18 @@ public class BillingPlugin: CAPPlugin {
         }
     }
 
-    public class Observer: NSObject, SKPaymentTransactionObserver{
+    /// Android-only acknowledge flow; on iOS use `finishTransaction` after purchase.
+    @objc public func sendAck(_ call: CAPPluginCall) {
+        call.reject("sendAck is not used on iOS; call finishTransaction with the StoreKit transaction id instead.")
+    }
+
+    public class Observer: NSObject, SKPaymentTransactionObserver {
         public func paymentQueue(_ queue: SKPaymentQueue, updatedTransactions transactions: [SKPaymentTransaction]) {
             for transaction in transactions {
 
                 let transactionState: SKPaymentTransactionState = transaction.transactionState
                 switch transactionState {
                     case .purchased:
-                        // Get the receipt if it's available
                         if let appStoreReceiptURL = Bundle.main.appStoreReceiptURL,
                             FileManager.default.fileExists(atPath: appStoreReceiptURL.path) {
 
@@ -132,18 +143,18 @@ public class BillingPlugin: CAPPlugin {
         }
 
         var productList: ProductList
-        // SKProductsRequestDelegate protocol method.
+
         public func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
 
             if !response.products.isEmpty {
                 let product = response.products[0]
-                var contains = false;
+                var contains = false
                 for p in productList.products {
-                    if(product.productIdentifier == p.productIdentifier){
+                    if product.productIdentifier == p.productIdentifier {
                         contains = true
                     }
                 }
-                if(!contains){
+                if !contains {
                     productList.products.append(product)
                 }
                 call?.resolve([
@@ -155,9 +166,7 @@ public class BillingPlugin: CAPPlugin {
             }
 
             for invalidIdentifier in response.invalidProductIdentifiers {
-               // Handle any invalid product identifiers as appropriate.
-                print("invalid")
-                print(invalidIdentifier)
+                print("invalid product id: \(invalidIdentifier)")
             }
         }
     }

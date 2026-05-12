@@ -25,7 +25,8 @@
     "dist/",
     "ios/",
     "android/",
-    "CapacitorBilling.podspec"
+    "CapacitorBilling.podspec",
+    "Package.swift"
   ],
   "keywords": [
     "capacitor",
