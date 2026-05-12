@@ -24,6 +24,32 @@ import java.util.List;
 @CapacitorPlugin()
 public class BillingPlugin extends Plugin {
 
+    /** Clearer errors when Play returns empty list or BillingResult without debugMessage. */
+    private void rejectQueryProductDetailsFailure(
+            final PluginCall call,
+            final BillingResult billingResult,
+            final List<ProductDetails> productDetailsList) {
+        int code = billingResult.getResponseCode();
+        String dbg = billingResult.getDebugMessage();
+        if (dbg == null) {
+            dbg = "";
+        }
+        String productId = call.getString("product", "fullversion");
+        String productType = call.getString("type", "INAPP");
+        if (code == BillingClient.BillingResponseCode.OK
+                && (productDetailsList == null || productDetailsList.isEmpty())) {
+            call.reject(
+                    "Error retrieving product details: Play returned no product for productId=\""
+                            + productId
+                            + "\" type=\""
+                            + productType
+                            + "\". Add this managed product or subscription in Play Console for the same applicationId as this app, publish it (e.g. internal testing), and install a build signed with a key Play knows for that listing.");
+        } else {
+            String suffix = dbg.isEmpty() ? ("billingResponseCode=" + code) : ("billingResponseCode=" + code + ": " + dbg);
+            call.reject("Error retrieving product details: " + suffix);
+        }
+    }
+
     private BillingClient createNewBillingClient(PurchasesUpdatedListener listener) {
         return BillingClient.newBuilder(bridge.getActivity())
                 .setListener(listener)
@@ -103,7 +129,7 @@ public class BillingPlugin extends Plugin {
 
                             call.resolve(ret);
                         } else {
-                            call.reject("Error retrieving product details: " + billingResult1.getDebugMessage());
+                            rejectQueryProductDetailsFailure(call, billingResult1, productDetailsList);
                         }
                     });
                 } else {
@@ -170,7 +196,7 @@ public class BillingPlugin extends Plugin {
                                 }
                             }
                         } else {
-                            call.reject("Error retrieving product details: " + billingResult1.getDebugMessage());
+                            rejectQueryProductDetailsFailure(call, billingResult1, productDetailsList);
                         }
                     });
                 } else {

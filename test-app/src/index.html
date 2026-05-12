@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Billing Test</title>
+    <meta
+      name="viewport"
+      content="viewport-fit=cover, width=device-width, initial-scale=1.0"
+    />
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Billing plugin test</h1>
+      <p class="hint">
+        The plugin is app-agnostic: enter the <strong>SKU from your</strong> Play Console /
+        App Store Connect (it must match this test app’s <code>applicationId</code> / bundle ID).
+        Defaults: <code>.env.local</code> (<code>VITE_BILLING_TEST_*</code>) or
+        <code>billingTestDefaults</code> in <code>capacitor.config.json</code>, then the last UI
+        values (localStorage).
+      </p>
+      <label>Product id <input id="product" type="text" autocomplete="off" /></label>
+      <label
+        >Type
+        <select id="type">
+          <option value="INAPP">INAPP</option>
+          <option value="SUBS">SUBS</option>
+        </select>
+      </label>
+      <div class="actions">
+        <button type="button" id="btn-query">querySkuDetails</button>
+        <button type="button" id="btn-purchase">launchBillingFlow</button>
+      </div>
+      <pre id="log"></pre>
+    </main>
+    <script type="module" src="./js/billing-test.js"></script>
+  </body>
+</html>
